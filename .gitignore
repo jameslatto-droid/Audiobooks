@@ -1,0 +1,21 @@
+# Secrets
+.env
+
+# Runtime data (tracked via .gitkeep, never actual content)
+config/*
+!config/**/.gitkeep
+data/*
+!data/**/.gitkeep
+media/*
+!media/**/.gitkeep
+
+# Logs
+*.log
+
+# Node / tooling
+node_modules/
+dist/
+tmp/
+
+# OS
+.DS_Store

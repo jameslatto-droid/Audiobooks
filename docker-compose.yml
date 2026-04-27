@@ -1,0 +1,52 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# AquaCenyx Audiobookshelf — Docker Compose
+#
+# Reverse proxy : Traefik (existing, network: proxy)
+# Auth          : chain-secure@file (Authelia + CrowdSec, existing middleware)
+# TLS           : Let's Encrypt via certresolver=letsencrypt
+# External URL  : https://${DOMAIN}  (audiobooks.aquacenyx.nl by default)
+#
+# SECURITY NOTE: port 13378 is bound to 127.0.0.1 only.
+#                All external traffic goes through Traefik/Authelia.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf:latest
+    container_name: aquacenyx-audiobookshelf
+    restart: unless-stopped
+
+    # Bind only to loopback — never expose directly to internet
+    ports:
+      - "127.0.0.1:${AUDIOBOOKSHELF_PORT:-13378}:80"
+
+    volumes:
+      - ./config/audiobookshelf:/config
+      - ./data/audiobookshelf:/metadata
+      - ./media/audiobooks:/audiobooks
+      - ./media/podcasts:/podcasts
+      - ./media/uploads:/uploads
+
+    environment:
+      - TZ=${TZ:-Europe/Amsterdam}
+
+    networks:
+      - proxy
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+
+      # ── HTTPS router — public, TLS via Let's Encrypt, auth via Authelia ──
+      - "traefik.http.routers.audiobooks.rule=Host(`${DOMAIN:-audiobooks.aquacenyx.nl}`)"
+      - "traefik.http.routers.audiobooks.entrypoints=websecure"
+      - "traefik.http.routers.audiobooks.tls=true"
+      - "traefik.http.routers.audiobooks.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.audiobooks.middlewares=chain-secure@file"
+
+      # ── Service backend ──
+      - "traefik.http.services.audiobooks.loadbalancer.server.port=80"
+
+networks:
+  proxy:
+    external: true

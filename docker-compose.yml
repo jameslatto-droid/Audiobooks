@@ -3,11 +3,11 @@
 #
 # Reverse proxy : Traefik (existing, network: proxy)
 # Auth          : chain-secure@file (Authelia + CrowdSec, existing middleware)
-# TLS           : Let's Encrypt via certresolver=letsencrypt
-# External URL  : https://${DOMAIN}  (audiobooks.aquacenyx.nl by default)
+# TLS           : Traefik default cert (local network only)
+# Local URL     : https://audiobooks.server.local
 #
 # SECURITY NOTE: port 13378 is bound to 127.0.0.1 only.
-#                All external traffic goes through Traefik/Authelia.
+#                All traffic goes through Traefik on the local network.
 # ─────────────────────────────────────────────────────────────────────────────
 
 services:
@@ -37,11 +37,10 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
 
-      # ── HTTPS router — public, TLS via Let's Encrypt, auth via Authelia ──
-      - "traefik.http.routers.audiobooks.rule=Host(`${DOMAIN:-audiobooks.aquacenyx.nl}`)"
+      # ── HTTPS router — local network only, Traefik default cert ──
+      - "traefik.http.routers.audiobooks.rule=Host(`audiobooks.server.local`)"
       - "traefik.http.routers.audiobooks.entrypoints=websecure"
       - "traefik.http.routers.audiobooks.tls=true"
-      - "traefik.http.routers.audiobooks.tls.certresolver=letsencrypt"
       - "traefik.http.routers.audiobooks.middlewares=chain-secure@file"
 
       # ── Service backend ──
